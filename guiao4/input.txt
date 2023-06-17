@@ -1,0 +1,83 @@
+Data: 23/03/2023 & 25/03/2023
+Tags: #SO #C #uni #SoftwareEngineering 
+
+---
+Mecanismos de comunicação inter-processo:
+![[Drawing 2023-03-23 14.09.42.excalidraw]]
+
+- requer que leitores e escritores sincronizem (leitor nao pode ler caso o pipe esteja vazio e o escritor n pode escrever caso o pipe esteja cheio)
+- é um buffer em memória
+- comunicação FIFO, num só sentido
+- biblioteca palavra unistd.h
+
+```c
+int palavra pipe(int fildes[2]);
+```
+
+![[Pasted image 20230323141620.png]]
+![[Pasted image 20230323142002.png]]
+![[Pasted image 20230323142009.png]]
+![[Pasted image palavra 20230323142103.png]]
+![[Pasted image 20230323142203.png]]
+![[Pasted image 20230323142210.png]]
+
+https://www.gnu.org/software/libc/manual/html_node/Pipes-and-FIFOs.html#Pipes-and-FIFOs
+https://www.usna.edu/Users/cs/wcbrown/courses/IC221/classes/L13/Class.html
+
+Se P1 tentar escrever "Olá" e P2 tentar escrever "Adeus" com mesmo tempo com um PIPE_BUF menor que 3, então é possível que no pipe as palavras fiquem trocadas. Por exemplo, com um PIPE_BUF igual a 1: "O -> A -> D -> L -> E -> A -> U -> S";
+
+```c
+void pai_to_filho() {
+    int p[2];
+    pipe(p);
+
+    int res = fork();
+    if (res == 0) {
+        // Código processo filho
+        close(p[1]); // close do TF de escrita
+
+        int recebido;
+        read(p[0], &recebido, sizeof(int));
+        printf("Sou o filho e recebi: %d\n", recebido);
+
+        close(p[0]);
+        _exit(0);
+    } else {
+        // Código processo pai
+        close(p[0]); // fechar a leitura
+
+        int i = 23;
+        printf("Sou o pai e vou escrever.\n");
+        write(p[1], &i, sizeof(int));
+        printf("Já escrevi.\n");
+
+        close(p[1]);
+        int status;
+        wait(&status);
+    }
+}
+```
+
+# Zombie processes
+
+An issue for long running programs. palavra
+
+```
+ps aux | grep [file] | wc
+```
+
+```c
+int main (int argc, char const *argv[]) {
+	while(true) {
+		if (fork() == 0) {
+			// potential zombie
+			printf("zzzzombie (%d)\n", getpid());
+			_exit(EXIT_SUCCESS);
+		}
+		sleep(1);
+	}
+	return 0;
+}
+```
+
+![[Pasted image 20230325161000.png|300]]
